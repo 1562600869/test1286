@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科技馆课程管理系统</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f8;
+    color: #1a202c;
+    padding: 20px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 20px; color: #2b6cb0; }
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+.tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+    transition: all 0.2s;
+}
+.tab-btn.active {
+    background: white;
+    color: #2b6cb0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.card h2 {
+    margin-bottom: 16px;
+    color: #2d3748;
+    font-size: 18px;
+    border-left: 4px solid #2b6cb0;
+    padding-left: 10px;
+}
+form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.form-group { display: flex; flex-direction: column; }
+.form-group label {
+    font-size: 12px;
+    color: #718096;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+.form-group input, .form-group select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #2b6cb0;
+    box-shadow: 0 0 0 3px rgba(43,108,176,0.1);
+}
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.btn-primary { background: #2b6cb0; color: white; }
+.btn-primary:hover { background: #2c5282; }
+.btn-danger { background: #e53e3e; color: white; }
+.btn-danger:hover { background: #c53030; }
+.btn-success { background: #38a169; color: white; }
+.btn-success:hover { background: #2f855a; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-form { align-self: end; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+th {
+    background: #f7fafc;
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 13px;
+}
+tr:hover { background: #f7fafc; }
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.status-open { background: #c6f6d5; color: #22543d; }
+.status-full { background: #fed7d7; color: #742a2a; }
+.status-ended { background: #e2e8f0; color: #4a5568; }
+.type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: #bee3f8;
+    color: #2a4365;
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+.stat-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stat-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stat-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.stat-card:nth-child(5) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.stat-label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: bold; }
+.stat-sub { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #a0aec0;
+    font-size: 14px;
+}
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.modal h3 { margin-bottom: 16px; color: #2d3748; }
+.modal-close {
+    float: right;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #a0aec0;
+}
+.modal-close:hover { color: #4a5568; }
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    z-index: 2000;
+    transform: translateX(120%);
+    transition: transform 0.3s;
+}
+.toast.show { transform: translateX(0); }
+.toast.success { background: #38a169; }
+.toast.error { background: #e53e3e; }
+.row-actions { display: flex; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🔬 科技馆课程管理系统</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="courses">课程管理</button>
+        <button class="tab-btn" data-tab="families">家庭管理</button>
+        <button class="tab-btn" data-tab="registrations">报名管理</button>
+        <button class="tab-btn" data-tab="attendance">出勤签到</button>
+        <button class="tab-btn" data-tab="stats">统计报表</button>
+    </div>
+
+    <div id="tab-courses" class="tab-content active">
+        <div class="card">
+            <h2>添加课程</h2>
+            <form id="course-form">
+                <div class="form-group">
+                    <label>课程名称</label>
+                    <input type="text" name="name" required placeholder="如：趣味化学实验">
+                </div>
+                <div class="form-group">
+                    <label>课程类型</label>
+                    <select name="course_type" required>
+                        <option value="化学">化学</option>
+                        <option value="物理">物理</option>
+                        <option value="生物">生物</option>
+                        <option value="编程">编程</option>
+                        <option value="天文">天文</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>适龄分组</label>
+                    <select name="age_group" required>
+                        <option value="3-6岁">3-6岁</option>
+                        <option value="6-9岁">6-9岁</option>
+                        <option value="9-12岁">9-12岁</option>
+                        <option value="亲子通用">亲子通用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>费用（分）</label>
+                    <input type="number" name="fee" required min="0" placeholder="如：19900=199元">
+                </div>
+                <div class="form-group">
+                    <label>最大人数</label>
+                    <input type="number" name="max_students" required min="1" placeholder="如：20">
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select name="status">
+                        <option value="开放报名">开放报名</option>
+                        <option value="已满">已满</option>
+                        <option value="已结束">已结束</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-form">添加课程</button>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>课程列表</h2>
+            <div id="course-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-families" class="tab-content">
+        <div class="card">
+            <h2>添加家庭</h2>
+            <form id="family-form">
+                <div class="form-group">
+                    <label>家长姓名</label>
+                    <input type="text" name="parent_name" required placeholder="如：张爸爸">
+                </div>
+                <div class="form-group">
+                    <label>家长手机</label>
+                    <input type="tel" name="parent_phone" required placeholder="如：13800138000">
+                </div>
+                <div class="form-group">
+                    <label>孩子姓名</label>
+                    <input type="text" name="child_name" required placeholder="如：小明">
+                </div>
+                <div class="form-group">
+                    <label>孩子年龄</label>
+                    <input type="number" name="child_age" required min="0" placeholder="如：8">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-form">添加家庭</button>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>家庭列表</h2>
+            <div id="family-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-registrations" class="tab-content">
+        <div class="card">
+            <h2>课程报名</h2>
+            <form id="registration-form">
+                <div class="form-group">
+                    <label>选择课程</label>
+                    <select name="course_id" required id="reg-course-select">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选择家庭</label>
+                    <select name="family_id" required id="reg-family-select">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-form">立即报名</button>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>报名记录</h2>
+            <div id="registration-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-attendance" class="tab-content">
+        <div class="card">
+            <h2>出勤签到</h2>
+            <form id="attendance-form">
+                <div class="form-group">
+                    <label>选择课程</label>
+                    <select name="course_id" required id="att-course-select">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选择家庭</label>
+                    <select name="family_id" required id="att-family-select">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>签到日期</label>
+                    <input type="date" name="attendance_date" required id="att-date">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-form">签到</button>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>签到记录</h2>
+            <div id="attendance-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-stats" class="tab-content">
+        <div class="card">
+            <h2>本月各课程类型统计</h2>
+            <div class="stats-grid" id="stats-grid"></div>
+            <div id="stats-table"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="families-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h3 id="modal-title">报名家庭列表</h3>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+async function api(url, method = 'GET', data = null) {
+    const options = { method, headers: { 'Content-Type': 'application/json' } };
+    if (data) options.body = JSON.stringify(data);
+    const res = await fetch(API + url, options);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || '请求失败');
+    return json;
+}
+
+function statusBadge(status) {
+    const cls = status === '开放报名' ? 'status-open' : status === '已满' ? 'status-full' : 'status-ended';
+    return `<span class="status-badge ${cls}">${status}</span>`;
+}
+
+function formatFee(fee) {
+    return (fee / 100).toFixed(2) + ' 元';
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
+    if (tab === 'courses') loadCourses();
+    if (tab === 'families') loadFamilies();
+    if (tab === 'registrations') { loadCoursesForSelect(); loadFamiliesForSelect(); loadRegistrations(); }
+    if (tab === 'attendance') { loadCoursesForAttSelect(); loadFamiliesForAttSelect(); loadAttendances(); }
+    if (tab === 'stats') loadStats();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+async function loadCourses() {
+    const courses = await api('/api/courses');
+    const container = document.getElementById('course-list');
+    if (courses.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无课程，添加第一个课程吧</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>ID</th><th>课程名</th><th>类型</th><th>适龄</th><th>费用</th><th>人数</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+    courses.forEach(c => {
+        html += `<tr>
+            <td>${c.id}</td>
+            <td>${c.name}</td>
+            <td><span class="type-badge">${c.course_type}</span></td>
+            <td>${c.age_group}</td>
+            <td>${formatFee(c.fee)}</td>
+            <td>${c.registered_count}/${c.max_students}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td class="row-actions">
+                <button class="btn btn-primary btn-sm" onclick="viewFamilies(${c.id}, '${c.name}')">查看家庭</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})">删除</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+async function loadCoursesForSelect() {
+    const courses = await api('/api/courses');
+    const sel = document.getElementById('reg-course-select');
+    sel.innerHTML = '<option value="">请选择课程</option>';
+    courses.filter(c => c.status === '开放报名').forEach(c => {
+        sel.innerHTML += `<option value="${c.id}">${c.name} (${c.registered_count}/${c.max_students})</option>`;
+    });
+}
+
+async function loadCoursesForAttSelect() {
+    const courses = await api('/api/courses');
+    const sel = document.getElementById('att-course-select');
+    sel.innerHTML = '<option value="">请选择课程</option>';
+    courses.forEach(c => {
+        sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+}
+
+async function deleteCourse(id) {
+    if (!confirm('确定删除此课程？相关报名和签到记录也会被删除。')) return;
+    try {
+        await api('/api/courses/' + id, 'DELETE');
+        showToast('删除成功');
+        loadCourses();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+document.getElementById('course-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd);
+    try {
+        await api('/api/courses', 'POST', data);
+        showToast('课程添加成功');
+        e.target.reset();
+        loadCourses();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+async function loadFamilies() {
+    const families = await api('/api/families');
+    const container = document.getElementById('family-list');
+    if (families.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无家庭，添加第一个家庭吧</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>ID</th><th>家长姓名</th><th>手机</th><th>孩子姓名</th><th>孩子年龄</th><th>操作</th></tr></thead><tbody>';
+    families.forEach(f => {
+        html += `<tr>
+            <td>${f.id}</td>
+            <td>${f.parent_name}</td>
+            <td>${f.parent_phone}</td>
+            <td>${f.child_name}</td>
+            <td>${f.child_age}岁</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteFamily(${f.id})">删除</button></td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+async function loadFamiliesForSelect() {
+    const families = await api('/api/families');
+    const sel = document.getElementById('reg-family-select');
+    sel.innerHTML = '<option value="">请选择家庭</option>';
+    families.forEach(f => {
+        sel.innerHTML += `<option value="${f.id}">${f.parent_name} - ${f.child_name}(${f.child_age}岁)</option>`;
+    });
+}
+
+async function loadFamiliesForAttSelect() {
+    const families = await api('/api/families');
+    const sel = document.getElementById('att-family-select');
+    sel.innerHTML = '<option value="">请选择家庭</option>';
+    families.forEach(f => {
+        sel.innerHTML += `<option value="${f.id}">${f.parent_name} - ${f.child_name}(${f.child_age}岁)</option>`;
+    });
+}
+
+async function deleteFamily(id) {
+    if (!confirm('确定删除此家庭？相关报名和签到记录也会被删除。')) return;
+    try {
+        await api('/api/families/' + id, 'DELETE');
+        showToast('删除成功');
+        loadFamilies();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+document.getElementById('family-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd);
+    try {
+        await api('/api/families', 'POST', data);
+        showToast('家庭添加成功');
+        e.target.reset();
+        loadFamilies();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+async function loadRegistrations() {
+    const regs = await api('/api/registrations');
+    const container = document.getElementById('registration-list');
+    if (regs.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无报名记录</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>ID</th><th>课程</th><th>家庭</th><th>孩子</th><th>报名时间</th></tr></thead><tbody>';
+    regs.forEach(r => {
+        html += `<tr>
+            <td>${r.id}</td>
+            <td>${r.course_name}</td>
+            <td>${r.parent_name}</td>
+            <td>${r.child_name}(${r.child_age}岁)</td>
+            <td>${r.registered_at}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+document.getElementById('registration-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd);
+    if (!data.course_id || !data.family_id) {
+        showToast('请选择课程和家庭', 'error');
+        return;
+    }
+    try {
+        await api('/api/registrations', 'POST', data);
+        showToast('报名成功');
+        e.target.reset();
+        loadRegistrations();
+        loadCoursesForSelect();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+async function viewFamilies(courseId, courseName) {
+    const families = await api('/api/courses/' + courseId + '/families');
+    document.getElementById('modal-title').textContent = `「${courseName}」报名家庭列表`;
+    const content = document.getElementById('modal-content');
+    if (families.length === 0) {
+        content.innerHTML = '<div class="empty-state">暂无报名家庭</div>';
+    } else {
+        let html = '<table><thead><tr><th>ID</th><th>家长姓名</th><th>手机</th><th>孩子姓名</th><th>孩子年龄</th><th>报名时间</th></tr></thead><tbody>';
+        families.forEach(f => {
+            html += `<tr>
+                <td>${f.family_id}</td>
+                <td>${f.parent_name}</td>
+                <td>${f.parent_phone}</td>
+                <td>${f.child_name}</td>
+                <td>${f.child_age}岁</td>
+                <td>${f.registered_at}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        content.innerHTML = html;
+    }
+    document.getElementById('families-modal').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('families-modal').classList.remove('show');
+}
+
+document.getElementById('families-modal').addEventListener('click', e => {
+    if (e.target.id === 'families-modal') closeModal();
+});
+
+async function loadAttendances() {
+    const atts = await api('/api/attendances');
+    const container = document.getElementById('attendance-list');
+    if (atts.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无签到记录</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>ID</th><th>课程</th><th>家庭</th><th>孩子</th><th>签到日期</th></tr></thead><tbody>';
+    atts.forEach(a => {
+        html += `<tr>
+            <td>${a.id}</td>
+            <td>${a.course_name}</td>
+            <td>${a.parent_name}</td>
+            <td>${a.child_name}(${a.child_age}岁)</td>
+            <td>${a.attendance_date}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+document.getElementById('attendance-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd);
+    if (!data.course_id || !data.family_id) {
+        showToast('请选择课程和家庭', 'error');
+        return;
+    }
+    try {
+        await api('/api/attendances', 'POST', data);
+        showToast('签到成功');
+        e.target.reset();
+        document.getElementById('att-date').value = new Date().toISOString().split('T')[0];
+        loadAttendances();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+async function loadStats() {
+    const data = await api('/api/stats/monthly');
+    const grid = document.getElementById('stats-grid');
+    const tableContainer = document.getElementById('stats-table');
+
+    const typeColors = {
+        '化学': '#667eea', '物理': '#f5576c', '生物': '#43e97b', '编程': '#4facfe', '天文': '#fa709a'
+    };
+
+    let gridHtml = '';
+    data.stats.forEach(s => {
+        gridHtml += `<div class="stat-card">
+            <div class="stat-label">${s.course_type}</div>
+            <div class="stat-value">${s.registration_count} 人次</div>
+            <div class="stat-sub">收入：${formatFee(s.total_fee)}</div>
+        </div>`;
+    });
+    if (data.stats.length === 0) {
+        gridHtml = '<div class="empty-state">本月暂无报名数据</div>';
+    }
+    grid.innerHTML = gridHtml;
+
+    if (data.stats.length > 0) {
+        const totalCount = data.stats.reduce((sum, s) => sum + s.registration_count, 0);
+        const totalFee = data.stats.reduce((sum, s) => sum + s.total_fee, 0);
+        let tableHtml = `<h2 style="margin-top:20px;">${data.year}年${data.month}月 汇总</h2>`;
+        tableHtml += '<table><thead><tr><th>课程类型</th><th>报名人次</th><th>收入</th></tr></thead><tbody>';
+        data.stats.forEach(s => {
+            tableHtml += `<tr>
+                <td><span class="type-badge">${s.course_type}</span></td>
+                <td>${s.registration_count} 人次</td>
+                <td>${formatFee(s.total_fee)}</td>
+            </tr>`;
+        });
+        tableHtml += `<tr style="font-weight:bold;background:#f7fafc;">
+            <td>合计</td>
+            <td>${totalCount} 人次</td>
+            <td>${formatFee(totalFee)}</td>
+        </tr>`;
+        tableHtml += '</tbody></table>';
+        tableContainer.innerHTML = tableHtml;
+    } else {
+        tableContainer.innerHTML = '';
+    }
+}
+
+function init() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('att-date').value = today;
+    loadCourses();
+}
+
+init();
+</script>
+</body>
+</html>
