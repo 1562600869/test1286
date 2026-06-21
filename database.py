@@ -16,35 +16,52 @@ def get_connection():
     return conn
 
 
+def _table_has_check(conn, table_name, check_keyword):
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+    row = cursor.fetchone()
+    if not row or not row['sql']:
+        return False
+    return check_keyword in row['sql'].upper()
+
+
+def _rebuild_table(conn, old_name, new_name, create_sql, copy_columns):
+    cursor = conn.cursor()
+    cursor.execute(f"ALTER TABLE {old_name} RENAME TO {new_name}")
+    cursor.execute(create_sql)
+    cursor.execute(f"INSERT INTO {old_name} ({copy_columns}) SELECT {copy_columns} FROM {new_name}")
+    cursor.execute(f"DROP TABLE {new_name}")
+
+
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    courses_sql = '''
         CREATE TABLE IF NOT EXISTS courses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            course_type TEXT NOT NULL,
-            age_group TEXT NOT NULL,
-            fee INTEGER NOT NULL,
-            max_students INTEGER NOT NULL,
-            status TEXT NOT NULL DEFAULT '开放报名',
+            course_type TEXT NOT NULL CHECK (course_type IN ('化学', '物理', '生物', '编程', '天文')),
+            age_group TEXT NOT NULL CHECK (age_group IN ('3-6岁', '6-9岁', '9-12岁', '亲子通用')),
+            fee INTEGER NOT NULL CHECK (fee >= 0),
+            max_students INTEGER NOT NULL CHECK (max_students > 0),
+            status TEXT NOT NULL DEFAULT '开放报名' CHECK (status IN ('开放报名', '已满', '已结束')),
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    '''
 
-    cursor.execute('''
+    families_sql = '''
         CREATE TABLE IF NOT EXISTS families (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             parent_name TEXT NOT NULL,
             parent_phone TEXT NOT NULL,
             child_name TEXT NOT NULL,
-            child_age INTEGER NOT NULL,
+            child_age INTEGER NOT NULL CHECK (child_age >= 0),
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    '''
 
-    cursor.execute('''
+    registrations_sql = '''
         CREATE TABLE IF NOT EXISTS registrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             course_id INTEGER NOT NULL,
@@ -54,9 +71,9 @@ def init_db():
             FOREIGN KEY (family_id) REFERENCES families (id),
             UNIQUE (course_id, family_id)
         )
-    ''')
+    '''
 
-    cursor.execute('''
+    attendances_sql = '''
         CREATE TABLE IF NOT EXISTS attendances (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             registration_id INTEGER NOT NULL,
@@ -69,7 +86,28 @@ def init_db():
             FOREIGN KEY (family_id) REFERENCES families (id),
             UNIQUE (course_id, family_id, attendance_date)
         )
-    ''')
+    '''
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('courses', 'families', 'registrations', 'attendances')")
+    existing_tables = {r['name'] for r in cursor.fetchall()}
+
+    if 'courses' not in existing_tables:
+        cursor.execute(courses_sql)
+    elif not _table_has_check(conn, 'courses', 'CHECK (COURSE_TYPE IN'):
+        _rebuild_table(conn, 'courses', '_courses_old', courses_sql,
+                       'id, name, course_type, age_group, fee, max_students, status, created_at')
+
+    if 'families' not in existing_tables:
+        cursor.execute(families_sql)
+    elif not _table_has_check(conn, 'families', 'CHECK (CHILD_AGE'):
+        _rebuild_table(conn, 'families', '_families_old', families_sql,
+                       'id, parent_name, parent_phone, child_name, child_age, created_at')
+
+    if 'registrations' not in existing_tables:
+        cursor.execute(registrations_sql)
+
+    if 'attendances' not in existing_tables:
+        cursor.execute(attendances_sql)
 
     conn.commit()
     conn.close()
@@ -318,6 +356,7 @@ def add_attendance(course_id, family_id, attendance_date=None):
 
     conn = get_connection()
     try:
+        conn.execute('BEGIN')
         cursor = conn.cursor()
 
         cursor.execute(
